@@ -12,9 +12,9 @@ public class ProxyInvocationHandler implements InvocationHandler {
     private final RestTemplate restTemplate;
     private final Class<?> targetClass;
 
-    public ProxyInvocationHandler(RestTemplate restTemplate, Class<?> targetClass) {
-        this.restTemplate = restTemplate;
+    public ProxyInvocationHandler(Class<?> targetClass, RestTemplate restTemplate) {
         this.targetClass = targetClass;
+        this.restTemplate = restTemplate;
     }
 
     @Override
@@ -23,7 +23,7 @@ public class ProxyInvocationHandler implements InvocationHandler {
         if (requestMapping == null) {
             throw new IllegalStateException("Method should be annotated with @RequestMapping");
         }
-        System.out.println("test!");
+
         String url = requestMapping.value()[0];
         HttpMethod httpMethod = requestMapping.method()[0].asHttpMethod();
 

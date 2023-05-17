@@ -37,18 +37,19 @@ public class BeanRegistrar implements ImportBeanDefinitionRegistrar, ResourceLoa
         String basePackage = ClassUtils.getPackageName(importingClassMetadata.getClassName());
         Set<BeanDefinition> candidateComponents = new LinkedHashSet<>(scanner.findCandidateComponents(basePackage));
 
-        for (BeanDefinition candidateComponent : candidateComponents) {
+        candidateComponents.forEach(candidateComponent -> {
             ScannedGenericBeanDefinition beanDefinition = (ScannedGenericBeanDefinition) candidateComponent;
             AnnotationMetadata annotationMetadata = beanDefinition.getMetadata();
             Assert.isTrue(annotationMetadata.isInterface(), "@RestClient can only be specified on an interface");
-
             Map<String, Object> attributes = annotationMetadata.getAnnotationAttributes(RestClient.class.getCanonicalName());
             registerBuilder(registry, annotationMetadata, attributes, candidateComponent);
-        }
+        });
     }
 
-    private void registerBuilder(BeanDefinitionRegistry registry, AnnotationMetadata annotationMetadata,
-                                 Map<String, Object> attributes, BeanDefinition candidateComponent) {
+    private void registerBuilder(BeanDefinitionRegistry registry,
+                                 AnnotationMetadata annotationMetadata,
+                                 Map<String, Object> attributes,
+                                 BeanDefinition candidateComponent) {
         String configName = null;
         if (!CollectionUtils.isEmpty(attributes)) {
             configName = "config." + annotationMetadata.getClassName();
@@ -57,13 +58,11 @@ public class BeanRegistrar implements ImportBeanDefinitionRegistrar, ResourceLoa
         String className = annotationMetadata.getClassName();
         BeanDefinitionBuilder definition = BeanDefinitionBuilder.genericBeanDefinition(MyFactoryBean.class);
         definition.addConstructorArgValue(className);
-        definition.addConstructorArgValue(configName);
         AbstractBeanDefinition beanDefinition = definition.getBeanDefinition();
         beanDefinition.setAttribute(FactoryBean.OBJECT_TYPE_ATTRIBUTE, className);
         String aliasName = AnnotationBeanNameGenerator.INSTANCE.generateBeanName(candidateComponent, registry);
         String name = BeanDefinitionReaderUtils.generateBeanName(beanDefinition, registry);
-        BeanDefinitionHolder holder = new BeanDefinitionHolder(beanDefinition,
-                name, new String[]{aliasName});
+        BeanDefinitionHolder holder = new BeanDefinitionHolder(beanDefinition, name, new String[]{aliasName});
         BeanDefinitionReaderUtils.registerBeanDefinition(holder, registry);
     }
 
