@@ -2,9 +2,9 @@ package su.grinev.restclient;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import su.grinev.restclient.annotations.EnableRestClient;
+import su.grinev.restclient.annotations.EnableRpcClient;
 
-@EnableRestClient
+@EnableRpcClient
 @SpringBootApplication
 public class RestClientApplication {
 

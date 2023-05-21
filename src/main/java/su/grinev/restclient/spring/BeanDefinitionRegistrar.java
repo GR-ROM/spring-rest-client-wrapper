@@ -18,14 +18,13 @@ import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.CollectionUtils;
-import su.grinev.restclient.annotations.RestClient;
-import su.grinev.restclient.spring.MyFactoryBean;
+import su.grinev.restclient.annotations.RestRpcClient;
 
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
-public class BeanRegistrar implements ImportBeanDefinitionRegistrar, ResourceLoaderAware, EnvironmentAware {
+public class BeanDefinitionRegistrar implements ImportBeanDefinitionRegistrar, ResourceLoaderAware, EnvironmentAware {
     private ResourceLoader resourceLoader;
     private Environment environment;
 
@@ -33,7 +32,7 @@ public class BeanRegistrar implements ImportBeanDefinitionRegistrar, ResourceLoa
     public void registerBeanDefinitions(AnnotationMetadata importingClassMetadata, BeanDefinitionRegistry registry) {
         ClassPathScanningCandidateComponentProvider scanner = getScanner();
         scanner.setResourceLoader(this.resourceLoader);
-        scanner.addIncludeFilter(new AnnotationTypeFilter(RestClient.class));
+        scanner.addIncludeFilter(new AnnotationTypeFilter(RestRpcClient.class));
         String basePackage = ClassUtils.getPackageName(importingClassMetadata.getClassName());
         Set<BeanDefinition> candidateComponents = new LinkedHashSet<>(scanner.findCandidateComponents(basePackage));
 
@@ -41,7 +40,7 @@ public class BeanRegistrar implements ImportBeanDefinitionRegistrar, ResourceLoa
             ScannedGenericBeanDefinition beanDefinition = (ScannedGenericBeanDefinition) candidateComponent;
             AnnotationMetadata annotationMetadata = beanDefinition.getMetadata();
             Assert.isTrue(annotationMetadata.isInterface(), "@RestClient can only be specified on an interface");
-            Map<String, Object> attributes = annotationMetadata.getAnnotationAttributes(RestClient.class.getCanonicalName());
+            Map<String, Object> attributes = annotationMetadata.getAnnotationAttributes(RestRpcClient.class.getCanonicalName());
             registerBuilder(registry, annotationMetadata, attributes, candidateComponent);
         });
     }
@@ -56,7 +55,7 @@ public class BeanRegistrar implements ImportBeanDefinitionRegistrar, ResourceLoa
             registerConfig(attributes, configName, registry);
         }
         String className = annotationMetadata.getClassName();
-        BeanDefinitionBuilder definition = BeanDefinitionBuilder.genericBeanDefinition(MyFactoryBean.class);
+        BeanDefinitionBuilder definition = BeanDefinitionBuilder.genericBeanDefinition(ProxyFactoryBean.class);
         definition.addConstructorArgValue(className);
         AbstractBeanDefinition beanDefinition = definition.getBeanDefinition();
         beanDefinition.setAttribute(FactoryBean.OBJECT_TYPE_ATTRIBUTE, className);
@@ -75,7 +74,7 @@ public class BeanRegistrar implements ImportBeanDefinitionRegistrar, ResourceLoa
             @Override
             protected boolean isCandidateComponent(
                     AnnotatedBeanDefinition beanDefinition) {
-                return !RestClient.class.getCanonicalName().equals(beanDefinition.getMetadata().getClassName());
+                return !RestRpcClient.class.getCanonicalName().equals(beanDefinition.getMetadata().getClassName());
             }
         };
     }

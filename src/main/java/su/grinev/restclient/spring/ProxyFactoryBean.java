@@ -2,23 +2,24 @@ package su.grinev.restclient.spring;
 
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.client.RestTemplate;
+import su.grinev.restclient.reflections.ProxyInvocationHandler;
+import su.grinev.restclient.services.WebClientWrapper;
 
 import java.lang.reflect.Proxy;
 
-public class MyFactoryBean<T> implements FactoryBean<T> {
+public class ProxyFactoryBean<T> implements FactoryBean<T> {
 
     private final Class<T> restClientInterface;
     @Autowired
-    private RestTemplate restTemplate;
+    private WebClientWrapper webClientWrapper;
 
-    public MyFactoryBean(Class<T> restClientInterface) {
+    public ProxyFactoryBean(Class<T> restClientInterface) {
         this.restClientInterface = restClientInterface;
     }
 
     @Override
     public T getObject() throws Exception {
-        ProxyInvocationHandler invocationHandler = new ProxyInvocationHandler(restClientInterface, restTemplate);
+        ProxyInvocationHandler invocationHandler = new ProxyInvocationHandler(restClientInterface, webClientWrapper);
         return (T) Proxy.newProxyInstance(getClass().getClassLoader(), new Class[]{restClientInterface}, invocationHandler);
     }
 
