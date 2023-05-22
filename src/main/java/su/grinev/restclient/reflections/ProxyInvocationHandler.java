@@ -37,20 +37,27 @@ public class ProxyInvocationHandler implements InvocationHandler {
             throw new IllegalStateException("Method should be annotated with @RequestMapping");
         }
 
-        Map<String, Object> requestParameters = getRequestParameters(method, args);
-
         String baseUrl = RestRpcClient.host();
-        String path = requestMapping.value()[0];
+        final String[] path = {requestMapping.value()[0]};
+
+        Map<String, Object> requestParameters = getRequestParameters(method, args);
+        Map<String, Object> pathVariables = getPathVariables(method, args);
+        if (!pathVariables.isEmpty()) {
+            pathVariables.entrySet().forEach(entry -> path[0] = path[0].replace("{" + entry.getKey() + "}", entry.getValue().toString()));
+        }
+
         if (requestParameters.size() > 0) {
             String parameters = requestParametersToUrl(requestParameters);
-            path = path + parameters;
+            path[0] = path[0] + parameters;
         }
         HttpMethod httpMethod = requestMapping.method()[0].asHttpMethod();
 
         ResponseEntity<?> responseEntity = switch (httpMethod.name()) {
-            case "GET" -> webClientWrapper.getRequest(baseUrl, path, Collections.EMPTY_MAP, method.getReturnType());
-            case "POST" -> webClientWrapper.postRequest(baseUrl, path, Collections.EMPTY_MAP, getRequestBody(method, args), method.getReturnType());
-            case "PUT" -> webClientWrapper.putRequest(baseUrl, path, Collections.EMPTY_MAP, getRequestBody(method, args), method.getReturnType());
+            case "GET" -> webClientWrapper.getRequest(baseUrl, path[0], Collections.EMPTY_MAP, method.getReturnType());
+            case "DELETE" -> webClientWrapper.deleteRequest(baseUrl, path[0], Collections.EMPTY_MAP, method.getReturnType());
+            case "POST" -> webClientWrapper.postRequest(baseUrl, path[0], Collections.EMPTY_MAP, getRequestBody(method, args), method.getReturnType());
+            case "PUT" -> webClientWrapper.putRequest(baseUrl, path[0], Collections.EMPTY_MAP, getRequestBody(method, args), method.getReturnType());
+            case "PATCH" -> webClientWrapper.patchRequest(baseUrl, path[0], Collections.EMPTY_MAP, getRequestBody(method, args), method.getReturnType());
             default -> throw new IllegalStateException("Unsupported HTTP method: " + httpMethod);
         };
 

@@ -30,7 +30,7 @@ public class WebClientWrapperImpl implements WebClientWrapper {
 
     public ResponseEntity<?> getRequest(String host, String url, Map<String, String> headersMap, Class returnType) {
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
-        headersMap.forEach((key, value) -> headers.add(key, value));
+        headersMap.forEach(headers::add);
 
         return (ResponseEntity<?>) webClient(host).get()
                 .uri(url)
@@ -42,9 +42,24 @@ public class WebClientWrapperImpl implements WebClientWrapper {
     }
 
     @Override
+    public ResponseEntity<?> deleteRequest(String host, String url, Map<String, String> headersMap, Class returnType) {
+        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+        headersMap.forEach(headers::add);
+
+        return (ResponseEntity<?>) webClient(host).delete()
+                .uri(url)
+                .headers(httpHeaders -> httpHeaders.addAll(headers))
+                .accept(APPLICATION_JSON)
+                .retrieve()
+                .toEntity(returnType)
+                .block(Duration.ofMillis(TIMEOUT));
+    }
+
+    @Override
     public ResponseEntity<?> postRequest(String host, String url, Map<String, String> headersMap, Object requestBody, Class returnType) {
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
-        headersMap.forEach((key, value) -> headers.add(key, value));
+        headersMap.forEach(headers::add);
+
         if (requestBody != null) {
             return (ResponseEntity<?>) webClient(host).post()
                     .uri(url)
@@ -68,9 +83,9 @@ public class WebClientWrapperImpl implements WebClientWrapper {
     @Override
     public ResponseEntity<?> putRequest(String host, String url, Map<String, String> headersMap, Object requestBody, Class<?> returnType) {
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
-        headersMap.forEach((key, value) -> headers.add(key, value));
+        headersMap.forEach(headers::add);
         if (requestBody != null) {
-            return (ResponseEntity<?>) webClient(host).put()
+            return webClient(host).put()
                     .uri(url)
                     .headers(httpHeaders -> httpHeaders.addAll(headers))
                     .accept(APPLICATION_JSON)
@@ -79,7 +94,31 @@ public class WebClientWrapperImpl implements WebClientWrapper {
                     .toEntity(returnType)
                     .block(Duration.ofMillis(TIMEOUT));
         } else {
-            return (ResponseEntity<?>) webClient(host).put()
+            return webClient(host).put()
+                    .uri(url)
+                    .headers(httpHeaders -> httpHeaders.addAll(headers))
+                    .accept(APPLICATION_JSON)
+                    .retrieve()
+                    .toEntity(returnType)
+                    .block(Duration.ofMillis(TIMEOUT));
+        }
+    }
+
+    @Override
+    public ResponseEntity<?> patchRequest(String host, String url, Map<String, String> headersMap, Object requestBody, Class<?> returnType) {
+        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+        headersMap.forEach(headers::add);
+        if (requestBody != null) {
+            return webClient(host).patch()
+                    .uri(url)
+                    .headers(httpHeaders -> httpHeaders.addAll(headers))
+                    .accept(APPLICATION_JSON)
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .toEntity(returnType)
+                    .block(Duration.ofMillis(TIMEOUT));
+        } else {
+            return webClient(host).patch()
                     .uri(url)
                     .headers(httpHeaders -> httpHeaders.addAll(headers))
                     .accept(APPLICATION_JSON)
@@ -118,5 +157,4 @@ public class WebClientWrapperImpl implements WebClientWrapper {
             }
         });
     }
-
 }
