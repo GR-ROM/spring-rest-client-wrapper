@@ -29,7 +29,7 @@ public class WebClientWrapperImpl implements WebClientWrapper {
 
     public static final int TIMEOUT = 3000;
 
-    public ResponseEntity<?> getRequest(String host, String url, Map<String, String> headersMap, Class resultClazz) {
+    public ResponseEntity<?> getRequest(String host, String url, Map<String, String> headersMap, Class resultClass) {
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headersMap.forEach((key, value) -> headers.add(key, value));
 
@@ -38,8 +38,32 @@ public class WebClientWrapperImpl implements WebClientWrapper {
                 .headers(httpHeaders -> httpHeaders.addAll(headers))
                 .accept(APPLICATION_JSON)
                 .retrieve()
-                .toEntity(resultClazz)
+                .toEntity(resultClass)
                 .block(Duration.ofMillis(TIMEOUT));
+    }
+
+    @Override
+    public ResponseEntity<?> postRequest(String host, String url, Map<String, String> headersMap, Object requestBody, Class resultClass) {
+        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+        headersMap.forEach((key, value) -> headers.add(key, value));
+        if (requestBody != null) {
+            return (ResponseEntity<?>) webClient(host).post()
+                    .uri(url)
+                    .headers(httpHeaders -> httpHeaders.addAll(headers))
+                    .accept(APPLICATION_JSON)
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .toEntity(resultClass)
+                    .block(Duration.ofMillis(TIMEOUT));
+        } else {
+            return (ResponseEntity<?>) webClient(host).post()
+                    .uri(url)
+                    .headers(httpHeaders -> httpHeaders.addAll(headers))
+                    .accept(APPLICATION_JSON)
+                    .retrieve()
+                    .toEntity(resultClass)
+                    .block(Duration.ofMillis(TIMEOUT));
+        }
     }
 
     @SneakyThrows

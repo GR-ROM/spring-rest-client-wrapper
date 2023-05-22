@@ -3,6 +3,7 @@ package su.grinev.restclient.reflections;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import su.grinev.restclient.annotations.RestRpcClient;
@@ -48,6 +49,7 @@ public class ProxyInvocationHandler implements InvocationHandler {
 
         ResponseEntity<?> responseEntity = switch (httpMethod.name()) {
             case "GET" -> webClientWrapper.getRequest(host, url, Collections.EMPTY_MAP, method.getReturnType());
+            case "POST" -> webClientWrapper.postRequest(host, url, Collections.EMPTY_MAP, getRequestBody(method, args), method.getReturnType());
             default -> throw new IllegalStateException("Unsupported HTTP method: " + httpMethod);
         };
 
@@ -63,6 +65,16 @@ public class ProxyInvocationHandler implements InvocationHandler {
             }
         }
         return requestParameters;
+    }
+
+    private Object getRequestBody(Method method, Object[] args) {
+        Parameter[] parameters = method.getParameters();
+        for (int i = 0; i != parameters.length; i++) {
+            if (parameters[i].isAnnotationPresent(RequestBody.class)) {
+                return args[i];
+            }
+        }
+        return null;
     }
 
     private Map<String, Object> getPathVariables(Method method, Object[] args) {
