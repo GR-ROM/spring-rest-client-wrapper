@@ -14,6 +14,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 public class ProxyInvocationHandler implements InvocationHandler {
     private final Class<?> targetClass;
@@ -37,19 +38,19 @@ public class ProxyInvocationHandler implements InvocationHandler {
         }
 
         Map<String, Object> requestParameters = getRequestParameters(method, args);
-        System.out.println(requestParameters);
 
-        String host = RestRpcClient.host();
-        String url = requestMapping.value()[0];
+        String baseUrl = RestRpcClient.host();
+        String path = requestMapping.value()[0];
         if (requestParameters.size() > 0) {
             String parameters = requestParametersToUrl(requestParameters);
-            url = url + parameters;
+            path = path + parameters;
         }
         HttpMethod httpMethod = requestMapping.method()[0].asHttpMethod();
 
         ResponseEntity<?> responseEntity = switch (httpMethod.name()) {
-            case "GET" -> webClientWrapper.getRequest(host, url, Collections.EMPTY_MAP, method.getReturnType());
-            case "POST" -> webClientWrapper.postRequest(host, url, Collections.EMPTY_MAP, getRequestBody(method, args), method.getReturnType());
+            case "GET" -> webClientWrapper.getRequest(baseUrl, path, Collections.EMPTY_MAP, method.getReturnType());
+            case "POST" -> webClientWrapper.postRequest(baseUrl, path, Collections.EMPTY_MAP, getRequestBody(method, args), method.getReturnType());
+            case "PUT" -> webClientWrapper.putRequest(baseUrl, path, Collections.EMPTY_MAP, getRequestBody(method, args), method.getReturnType());
             default -> throw new IllegalStateException("Unsupported HTTP method: " + httpMethod);
         };
 

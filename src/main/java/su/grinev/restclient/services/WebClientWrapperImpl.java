@@ -14,7 +14,6 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 
@@ -29,7 +28,7 @@ public class WebClientWrapperImpl implements WebClientWrapper {
 
     public static final int TIMEOUT = 3000;
 
-    public ResponseEntity<?> getRequest(String host, String url, Map<String, String> headersMap, Class resultClass) {
+    public ResponseEntity<?> getRequest(String host, String url, Map<String, String> headersMap, Class returnType) {
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headersMap.forEach((key, value) -> headers.add(key, value));
 
@@ -38,12 +37,12 @@ public class WebClientWrapperImpl implements WebClientWrapper {
                 .headers(httpHeaders -> httpHeaders.addAll(headers))
                 .accept(APPLICATION_JSON)
                 .retrieve()
-                .toEntity(resultClass)
+                .toEntity(returnType)
                 .block(Duration.ofMillis(TIMEOUT));
     }
 
     @Override
-    public ResponseEntity<?> postRequest(String host, String url, Map<String, String> headersMap, Object requestBody, Class resultClass) {
+    public ResponseEntity<?> postRequest(String host, String url, Map<String, String> headersMap, Object requestBody, Class returnType) {
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headersMap.forEach((key, value) -> headers.add(key, value));
         if (requestBody != null) {
@@ -53,7 +52,7 @@ public class WebClientWrapperImpl implements WebClientWrapper {
                     .accept(APPLICATION_JSON)
                     .bodyValue(requestBody)
                     .retrieve()
-                    .toEntity(resultClass)
+                    .toEntity(returnType)
                     .block(Duration.ofMillis(TIMEOUT));
         } else {
             return (ResponseEntity<?>) webClient(host).post()
@@ -61,7 +60,31 @@ public class WebClientWrapperImpl implements WebClientWrapper {
                     .headers(httpHeaders -> httpHeaders.addAll(headers))
                     .accept(APPLICATION_JSON)
                     .retrieve()
-                    .toEntity(resultClass)
+                    .toEntity(returnType)
+                    .block(Duration.ofMillis(TIMEOUT));
+        }
+    }
+
+    @Override
+    public ResponseEntity<?> putRequest(String host, String url, Map<String, String> headersMap, Object requestBody, Class<?> returnType) {
+        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+        headersMap.forEach((key, value) -> headers.add(key, value));
+        if (requestBody != null) {
+            return (ResponseEntity<?>) webClient(host).put()
+                    .uri(url)
+                    .headers(httpHeaders -> httpHeaders.addAll(headers))
+                    .accept(APPLICATION_JSON)
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .toEntity(returnType)
+                    .block(Duration.ofMillis(TIMEOUT));
+        } else {
+            return (ResponseEntity<?>) webClient(host).put()
+                    .uri(url)
+                    .headers(httpHeaders -> httpHeaders.addAll(headers))
+                    .accept(APPLICATION_JSON)
+                    .retrieve()
+                    .toEntity(returnType)
                     .block(Duration.ofMillis(TIMEOUT));
         }
     }
