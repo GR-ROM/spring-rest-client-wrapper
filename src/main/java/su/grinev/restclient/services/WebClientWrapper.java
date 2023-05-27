@@ -5,7 +5,7 @@ import org.springframework.http.ResponseEntity;
 import java.util.Map;
 
 public interface WebClientWrapper {
-    ResponseEntity<?> getRequest(String host, String url, Map<String, String> headersMap, Class returnType);
+    ResponseEntity<?> getRequest(String host, String url, Map<String, String> headersMap);
 
     ResponseEntity<?> deleteRequest(String host, String url, Map<String, String> headersMap, Class returnType);
 

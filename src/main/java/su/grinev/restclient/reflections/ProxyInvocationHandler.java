@@ -1,28 +1,34 @@
 package su.grinev.restclient.reflections;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import reactor.core.publisher.Mono;
 import su.grinev.restclient.annotations.RestRpcClient;
-import su.grinev.restclient.services.WebClientWrapper;
+import su.grinev.restclient.http.HttpRequest;
+import su.grinev.restclient.services.RestRpcGateway;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.util.*;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 public class ProxyInvocationHandler implements InvocationHandler {
     private final Class<?> targetClass;
-    private final WebClientWrapper webClientWrapper;
+    private final RestRpcGateway restRpcGateway;
+    private final ObjectMapper objectMapper;
 
-    public ProxyInvocationHandler(Class<?> targetClass, WebClientWrapper webClientWrapper) {
+    public ProxyInvocationHandler(Class<?> targetClass, RestRpcGateway restRpcGateway, ObjectMapper objectMapper) {
         this.targetClass = targetClass;
-        this.webClientWrapper = webClientWrapper;
+        this.restRpcGateway = restRpcGateway;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -52,16 +58,19 @@ public class ProxyInvocationHandler implements InvocationHandler {
         }
         HttpMethod httpMethod = requestMapping.method()[0].asHttpMethod();
 
-        ResponseEntity<?> responseEntity = switch (httpMethod.name()) {
-            case "GET" -> webClientWrapper.getRequest(baseUrl, path[0], Collections.EMPTY_MAP, method.getReturnType());
-            case "DELETE" -> webClientWrapper.deleteRequest(baseUrl, path[0], Collections.EMPTY_MAP, method.getReturnType());
-            case "POST" -> webClientWrapper.postRequest(baseUrl, path[0], Collections.EMPTY_MAP, getRequestBody(method, args), method.getReturnType());
-            case "PUT" -> webClientWrapper.putRequest(baseUrl, path[0], Collections.EMPTY_MAP, getRequestBody(method, args), method.getReturnType());
-            case "PATCH" -> webClientWrapper.patchRequest(baseUrl, path[0], Collections.EMPTY_MAP, getRequestBody(method, args), method.getReturnType());
-            default -> throw new IllegalStateException("Unsupported HTTP method: " + httpMethod);
-        };
+        String jsonBody = objectMapper.writeValueAsString(getRequestBody(method, args));
+        HttpRequest httpRequest = new HttpRequest(httpMethod.name(), baseUrl, path[0], Collections.EMPTY_MAP, jsonBody, method.getReturnType());
 
-        return responseEntity.getBody();
+        if (method.getReturnType() == Mono.class) {
+            return restRpcGateway.doAsyncRequest(httpRequest);
+        } else {
+            ResponseEntity<?> responseEntity = restRpcGateway.doSyncRequest(httpRequest);
+            if (method.getReturnType() == ResponseEntity.class) {
+                return responseEntity;
+            } else {
+                return responseEntity.getBody();
+            }
+        }
     }
 
     private Map<String, Object> getRequestParameters(Method method, Object[] args) {

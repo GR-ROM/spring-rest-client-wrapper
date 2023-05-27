@@ -1,8 +1,10 @@
 package su.grinev.restclient.spring;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import su.grinev.restclient.reflections.ProxyInvocationHandler;
+import su.grinev.restclient.services.RestRpcGateway;
 import su.grinev.restclient.services.WebClientWrapper;
 
 import java.lang.reflect.Proxy;
@@ -11,7 +13,10 @@ public class ProxyFactoryBean<T> implements FactoryBean<T> {
 
     private final Class<T> restClientInterface;
     @Autowired
-    private WebClientWrapper webClientWrapper;
+    private RestRpcGateway restRpcGateway;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     public ProxyFactoryBean(Class<T> restClientInterface) {
         this.restClientInterface = restClientInterface;
@@ -19,7 +24,7 @@ public class ProxyFactoryBean<T> implements FactoryBean<T> {
 
     @Override
     public T getObject() throws Exception {
-        ProxyInvocationHandler invocationHandler = new ProxyInvocationHandler(restClientInterface, webClientWrapper);
+        ProxyInvocationHandler invocationHandler = new ProxyInvocationHandler(restClientInterface, restRpcGateway, objectMapper);
         return (T) Proxy.newProxyInstance(getClass().getClassLoader(), new Class[]{restClientInterface}, invocationHandler);
     }
 

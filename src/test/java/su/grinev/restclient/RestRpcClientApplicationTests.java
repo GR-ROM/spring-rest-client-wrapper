@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import su.grinev.restclient.example.CoordsHandler;
+import su.grinev.restclient.exceptions.RpcErrorException;
 
 @SpringBootTest
 class RestRpcClientApplicationTests {
@@ -13,7 +14,11 @@ class RestRpcClientApplicationTests {
 
 	@Test
 	void contextLoads() {
-		System.out.println(restClient.getCoords("AST_162949f3-e6a1-4766-b4c3-761870fe07b6-deleted-26585"));
+		try {
+			System.out.println(restClient.getCoords("G36_1000000038"));
+		} catch (RpcErrorException ex) {
+			System.out.println(ex.getErrorResponse() + " " + ex.getNestedException().toString());
+		}
 	}
 
 }
