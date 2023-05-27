@@ -6,7 +6,7 @@ import su.grinev.restclient.http.HttpRequest;
 
 public interface RestRpcGateway {
 
-    ResponseEntity<?> doSyncRequest(HttpRequest httpRequest);
+    ResponseEntity doSyncRequest(HttpRequest httpRequest);
 
     Mono<?> doAsyncRequest(HttpRequest httpRequest);
 }

@@ -1,12 +1,15 @@
 package su.grinev.restclient.reflections;
 
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 import su.grinev.restclient.annotations.RestRpcClient;
 import su.grinev.restclient.http.HttpRequest;
+import su.grinev.restclient.http.HttpResponse;
 import su.grinev.restclient.services.RestRpcGateway;
 
 import java.lang.reflect.InvocationHandler;
@@ -37,8 +40,9 @@ public class ProxyInvocationHandler implements InvocationHandler {
 
         RequestMapping requestMapping = method.getAnnotation(RequestMapping.class);
         GetMapping getMapping = method.getAnnotation(GetMapping.class);
+        PostMapping postMapping = method.getAnnotation(PostMapping.class);
         if (requestMapping == null && getMapping == null) {
-            throw new IllegalStateException("Method should be annotated with @RequestMapping or @GetMapping");
+            throw new IllegalStateException("Method must be annotated with either @RequestMapping, @GetMapping or @PostMapping");
         }
 
         HttpMethod httpMethod = null;
@@ -49,6 +53,9 @@ public class ProxyInvocationHandler implements InvocationHandler {
         } else if (getMapping != null) {
             path[0] = getMapping.path()[0];
             httpMethod = HttpMethod.GET;
+        } else if (postMapping != null) {
+            path[0] = postMapping.path()[0];
+            httpMethod = HttpMethod.POST;
         }
 
         final String baseUrl = RestRpcClient.host();
@@ -65,14 +72,27 @@ public class ProxyInvocationHandler implements InvocationHandler {
         }
 
         String jsonBody = objectMapper.writeValueAsString(getRequestBody(method, args));
-        HttpRequest httpRequest = new HttpRequest(httpMethod.name(), baseUrl, path[0], Collections.EMPTY_MAP, jsonBody, method.getReturnType());
+        HttpRequest httpRequest = HttpRequest.builder()
+                .host(baseUrl)
+                .path(path[0])
+                .method(httpMethod.toString())
+                .headers(Collections.EMPTY_MAP)
+                .body(jsonBody)
+                .build();
 
         if (method.getReturnType() == Mono.class) {
             return restRpcGateway.doAsyncRequest(httpRequest);
         } else {
-            ResponseEntity<?> responseEntity = restRpcGateway.doSyncRequest(httpRequest);
-            if (method.getReturnType() == ResponseEntity.class) {
-                return responseEntity;
+            ResponseEntity<String> responseEntity = restRpcGateway.doSyncRequest(httpRequest);
+            if (method.getReturnType() != String.class) {
+                Object responseObject = objectMapper.readValue(responseEntity.getBody(), method.getReturnType());
+                if (method.getReturnType() == ResponseEntity.class) {
+                    HttpHeaders headers = new HttpHeaders();
+                    headers.putAll(responseEntity.getHeaders());
+                    return new ResponseEntity<>(responseObject, headers, responseEntity.getStatusCode());
+                } else {
+                    return responseObject;
+                }
             } else {
                 return responseEntity.getBody();
             }

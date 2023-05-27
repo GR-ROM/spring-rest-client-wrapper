@@ -31,7 +31,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 public class WebClientWrapperImpl implements WebClientWrapper {
     public static final int TIMEOUT = 3000;
 
-    public ResponseEntity<?> getRequest(String host, String url, Map<String, String> headersMap) {
+    public ResponseEntity<String> getRequest(String host, String url, Map<String, String> headersMap) {
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headersMap.forEach(headers::add);
 
@@ -48,7 +48,7 @@ public class WebClientWrapperImpl implements WebClientWrapper {
     }
 
     @Override
-    public ResponseEntity<?> deleteRequest(String host, String url, Map<String, String> headersMap, Class returnType) {
+    public ResponseEntity<?> deleteRequest(String host, String url, Map<String, String> headersMap) {
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headersMap.forEach(headers::add);
 
@@ -57,31 +57,31 @@ public class WebClientWrapperImpl implements WebClientWrapper {
                 .headers(httpHeaders -> httpHeaders.addAll(headers))
                 .accept(APPLICATION_JSON)
                 .retrieve()
-                .toEntity(returnType)
+                .toEntity(String.class)
                 .block(Duration.ofMillis(TIMEOUT));
     }
 
     @Override
-    public ResponseEntity<?> postRequest(String host, String url, Map<String, String> headersMap, Object requestBody, Class returnType) {
+    public ResponseEntity<String> postRequest(String host, String url, Map<String, String> headersMap, Object requestBody) {
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headersMap.forEach(headers::add);
 
         if (requestBody != null) {
-            return (ResponseEntity<?>) webClient(host).post()
+            return webClient(host).post()
                     .uri(url)
                     .headers(httpHeaders -> httpHeaders.addAll(headers))
                     .accept(APPLICATION_JSON)
                     .bodyValue(requestBody)
                     .retrieve()
-                    .toEntity(returnType)
+                    .toEntity(String.class)
                     .block(Duration.ofMillis(TIMEOUT));
         } else {
-            return (ResponseEntity<?>) webClient(host).post()
+            return  webClient(host).post()
                     .uri(url)
                     .headers(httpHeaders -> httpHeaders.addAll(headers))
                     .accept(APPLICATION_JSON)
                     .retrieve()
-                    .toEntity(returnType)
+                    .toEntity(String.class)
                     .block(Duration.ofMillis(TIMEOUT));
         }
     }

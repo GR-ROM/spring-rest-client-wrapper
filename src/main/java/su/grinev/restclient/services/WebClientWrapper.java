@@ -5,11 +5,11 @@ import org.springframework.http.ResponseEntity;
 import java.util.Map;
 
 public interface WebClientWrapper {
-    ResponseEntity<?> getRequest(String host, String url, Map<String, String> headersMap);
+    ResponseEntity<String> getRequest(String host, String url, Map<String, String> headersMap);
 
-    ResponseEntity<?> deleteRequest(String host, String url, Map<String, String> headersMap, Class returnType);
+    ResponseEntity<?> deleteRequest(String host, String url, Map<String, String> headersMap);
 
-    ResponseEntity<?> postRequest(String host, String url, Map<String, String> headersMap, Object requestBody, Class returnType);
+    ResponseEntity<String> postRequest(String host, String url, Map<String, String> headersMap, Object requestBody);
 
     ResponseEntity<?> putRequest(String host, String url, Map<String, String> headersMap, Object requestBody, Class<?> returnType);
 
