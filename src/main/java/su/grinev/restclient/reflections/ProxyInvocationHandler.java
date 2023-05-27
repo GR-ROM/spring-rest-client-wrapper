@@ -3,10 +3,7 @@ package su.grinev.restclient.reflections;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 import su.grinev.restclient.annotations.RestRpcClient;
 import su.grinev.restclient.http.HttpRequest;
@@ -39,12 +36,22 @@ public class ProxyInvocationHandler implements InvocationHandler {
         }
 
         RequestMapping requestMapping = method.getAnnotation(RequestMapping.class);
-        if (requestMapping == null) {
-            throw new IllegalStateException("Method should be annotated with @RequestMapping");
+        GetMapping getMapping = method.getAnnotation(GetMapping.class);
+        if (requestMapping == null && getMapping == null) {
+            throw new IllegalStateException("Method should be annotated with @RequestMapping or @GetMapping");
         }
 
-        String baseUrl = RestRpcClient.host();
-        final String[] path = {requestMapping.value()[0]};
+        HttpMethod httpMethod = null;
+        String[] path = new String[1];
+        if (requestMapping != null) {
+            path[0] = requestMapping.path()[0];
+            httpMethod = requestMapping.method()[0].asHttpMethod();
+        } else if (getMapping != null) {
+            path[0] = getMapping.path()[0];
+            httpMethod = HttpMethod.GET;
+        }
+
+        final String baseUrl = RestRpcClient.host();
 
         Map<String, Object> requestParameters = getRequestParameters(method, args);
         Map<String, Object> pathVariables = getPathVariables(method, args);
@@ -56,7 +63,6 @@ public class ProxyInvocationHandler implements InvocationHandler {
             String parameters = requestParametersToUrl(requestParameters);
             path[0] = path[0] + parameters;
         }
-        HttpMethod httpMethod = requestMapping.method()[0].asHttpMethod();
 
         String jsonBody = objectMapper.writeValueAsString(getRequestBody(method, args));
         HttpRequest httpRequest = new HttpRequest(httpMethod.name(), baseUrl, path[0], Collections.EMPTY_MAP, jsonBody, method.getReturnType());
