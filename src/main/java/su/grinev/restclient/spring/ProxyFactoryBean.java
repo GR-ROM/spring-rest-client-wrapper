@@ -5,7 +5,6 @@ import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import su.grinev.restclient.reflections.ProxyInvocationHandler;
 import su.grinev.restclient.services.RestRpcGateway;
-import su.grinev.restclient.services.WebClientWrapper;
 
 import java.lang.reflect.Proxy;
 
