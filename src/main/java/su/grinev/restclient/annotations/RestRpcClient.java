@@ -13,6 +13,8 @@ public @interface RestRpcClient {
 
     String host() default "";
 
+    String[] headers() default {};
+
     @AliasFor("host")
     String myhost() default "";
 }
