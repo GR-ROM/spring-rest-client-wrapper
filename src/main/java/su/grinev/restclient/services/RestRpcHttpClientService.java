@@ -14,17 +14,17 @@ public class RestRpcHttpClientService implements RestRpcGateway {
 
     @Override
     public ResponseEntity doSyncRequest(HttpRequest httpRequest) {
-        ResponseEntity<String> responseEntity = switch (httpRequest.getMethod()) {
+        ResponseEntity<String> responseEntity = switch (httpRequest.method()) {
             case "GET" -> webClientWrapper.getRequest(
-                    httpRequest.getHost(),
-                    httpRequest.getPath(),
-                    httpRequest.getHeaders());
+                    httpRequest.host(),
+                    httpRequest.path(),
+                    httpRequest.headers());
             case "POST" -> webClientWrapper.postRequest(
-                    httpRequest.getHost(),
-                    httpRequest.getPath(),
-                    httpRequest.getHeaders(),
-                    httpRequest.getBody());
-            default -> throw new IllegalStateException("Unsupported HTTP method: " + httpRequest.getMethod());
+                    httpRequest.host(),
+                    httpRequest.path(),
+                    httpRequest.headers(),
+                    httpRequest.body());
+            default -> throw new IllegalStateException("Unsupported HTTP method: " + httpRequest.method());
         };
         return responseEntity;
     }

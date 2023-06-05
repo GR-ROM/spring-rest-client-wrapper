@@ -11,21 +11,27 @@ import su.grinev.restclient.annotations.RestRpcClient;
 import su.grinev.restclient.http.HttpRequest;
 import su.grinev.restclient.services.RestRpcGateway;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Stream;
 
 public class ProxyInvocationHandler implements InvocationHandler {
+
     private final RestRpcGateway restRpcGateway;
     private final ObjectMapper objectMapper;
+    private final Map<Method, HttpRequest> cachedRequests;
 
     public ProxyInvocationHandler(Class<?> targetClass, RestRpcGateway restRpcGateway, ObjectMapper objectMapper) {
         this.restRpcGateway = restRpcGateway;
         this.objectMapper = objectMapper;
+        this.cachedRequests = new HashMap<>();
     }
 
     @Override
@@ -116,55 +122,58 @@ public class ProxyInvocationHandler implements InvocationHandler {
         return headers;
     }
 
+    private HttpRequest extractParamsFromAnnotations(Method method) {
+        return null;
+    }
+
     private HttpRequest extractRequestParameters(Method method, Object[] args) {
         RestRpcClient restRpcClient = method.getDeclaringClass().getAnnotation(RestRpcClient.class);
         if (restRpcClient == null) {
             throw new IllegalStateException("Class must be annotated with @RestClient");
         }
 
-        RequestMapping requestMapping = method.getAnnotation(RequestMapping.class);
-        GetMapping getMapping = method.getAnnotation(GetMapping.class);
-        PostMapping postMapping = method.getAnnotation(PostMapping.class);
-        PutMapping putMapping = method.getAnnotation(PutMapping.class);
-        PatchMapping patchMapping = method.getAnnotation(PatchMapping.class);
-        DeleteMapping deleteMapping = method.getAnnotation(DeleteMapping.class);
-        if (requestMapping == null && getMapping == null && putMapping == null && patchMapping == null && deleteMapping == null) {
-            throw new IllegalStateException("Method must be annotated with either @RequestMapping, @GetMapping, @PostMapping, @PutMapping, @PatchMapping or @DeleteMapping");
+        List<? extends Annotation> mappingAnnotation = Stream.of(method.getAnnotations())
+                .filter(a -> a.annotationType().isAnnotationPresent(RequestMapping.class) || a instanceof RequestMapping)
+                .toList();
+
+        if (mappingAnnotation.size() != 1) {
+            throw new IllegalStateException("Method must be annotated exactly one annotation the following: @RequestMapping, " +
+                    "@GetMapping, @PostMapping, @PutMapping, @PatchMapping, @DeleteMapping");
         }
 
-        HttpMethod httpMethod;
+        HttpMethod httpMethod = null;
         Map<String, String> headers = new HashMap<>();
         final String baseUrl = restRpcClient.host();
 
         headers.putAll(getHeadersFromArguments(args));
         headers.putAll(getHeadersFromAnnotation(restRpcClient.headers()));
         String[] path = new String[1];
-        if (requestMapping != null) {
+
+        if (mappingAnnotation.get(0) instanceof RequestMapping requestMapping) {
             path[0] = requestMapping.path()[0];
             httpMethod = requestMapping.method()[0].asHttpMethod();
             headers.putAll(getHeadersFromAnnotation(requestMapping.headers()));
-        } else if (getMapping != null) {
-            path[0] = getMapping.path()[0];
-            httpMethod = HttpMethod.GET;
-            headers.putAll(getHeadersFromAnnotation(getMapping.headers()));
-        } else if (postMapping != null) {
+        } else if (mappingAnnotation.get(0) instanceof PostMapping postMapping) {
             path[0] = postMapping.path()[0];
             httpMethod = HttpMethod.POST;
             headers.putAll(getHeadersFromAnnotation(postMapping.headers()));
-        } else if (putMapping != null) {
+        } else if (mappingAnnotation.get(0) instanceof GetMapping getMapping) {
+            path[0] = getMapping.path()[0];
+            httpMethod = HttpMethod.GET;
+            headers.putAll(getHeadersFromAnnotation(getMapping.headers()));
+        } else if (mappingAnnotation.get(0) instanceof PutMapping putMapping) {
             path[0] = putMapping.path()[0];
             httpMethod = HttpMethod.PUT;
             headers.putAll(getHeadersFromAnnotation(putMapping.headers()));
-        } else if (patchMapping != null) {
+        } else if (mappingAnnotation.get(0) instanceof PatchMapping patchMapping) {
             path[0] = patchMapping.path()[0];
             httpMethod = HttpMethod.PATCH;
             headers.putAll(getHeadersFromAnnotation(patchMapping.headers()));
-        } else {
+        } else if (mappingAnnotation.get(0) instanceof DeleteMapping deleteMapping) {
             path[0] = deleteMapping.path()[0];
             httpMethod = HttpMethod.DELETE;
             headers.putAll(getHeadersFromAnnotation(deleteMapping.headers()));
         }
-
         Map<String, Object> requestParameters = getRequestParameters(method, args);
         Map<String, Object> pathVariables = getPathVariables(method, args);
 

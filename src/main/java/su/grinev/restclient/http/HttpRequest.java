@@ -9,10 +9,5 @@ import java.util.Map;
 @Builder
 @AllArgsConstructor
 @Getter
-public class HttpRequest {
-    private final String method;
-    private final String host;
-    private final String path;
-    private final Map<String, String> headers;
-    private final String body;
+public record HttpRequest(String method, String host, String path, Map<String, String> headers, String body) {
 }
